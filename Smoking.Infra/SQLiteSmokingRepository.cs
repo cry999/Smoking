@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using Smoking.Domain;
 using Microsoft.Data.Sqlite;
@@ -9,11 +10,27 @@ namespace Smoking.Infra
 {
     public class SQLiteSmokingRepository : SmokerRepository
     {
-        public SQLiteSmokingRepository() { }
+        public SQLiteSmokingRepository(string settingDirectory)
+        {
+            this.SettingDirectory = settingDirectory;
+        }
+
+        private const string DataSource = "smoking.db";
+
+        private string SettingDirectory { get; set; }
+
+        private string AbsoluteDataSource { get => Path.Join(SettingDirectory, DataSource); }
+
+        private string SQLiteDataSource { get => $"Data Source={this.AbsoluteDataSource}"; }
+
+        private SqliteConnection GetConnection()
+        {
+            return new SqliteConnection(this.SQLiteDataSource);
+        }
 
         public async Task Migrate()
         {
-            using (var connection = new SqliteConnection("Data Source=smoking.db"))
+            using (var connection = this.GetConnection())
             {
                 await connection.OpenAsync();
 
@@ -40,7 +57,7 @@ namespace Smoking.Infra
         public async Task<Smoker> Get(Guid aggregateID)
         {
             var events = new List<Event>();
-            using (var connection = new SqliteConnection("Data Source=smoking.db"))
+            using (var connection = this.GetConnection())
             {
                 await connection.OpenAsync();
 
@@ -93,7 +110,7 @@ namespace Smoking.Infra
 
         public async Task Put(Smoker smoker)
         {
-            using (var connection = new SqliteConnection("Data Source=smoking.db"))
+            using (var connection = this.GetConnection())
             {
                 await connection.OpenAsync();
 

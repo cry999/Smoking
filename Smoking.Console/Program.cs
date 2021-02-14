@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using Smoking.Infra;
 using Smoking.Application;
+using System;
 
 namespace Smoking.Console
 {
@@ -16,15 +17,22 @@ namespace Smoking.Console
             }
             var command = args[0];
             System.Console.WriteLine($"do {command}");
-            var repo = new SQLiteSmokingRepository();
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var setting = Path.Join(home, ".smoking");
+            if (!Directory.Exists(setting))
+            {
+                Directory.CreateDirectory(setting);
+            }
+            var smokingRepository = new SQLiteSmokingRepository(setting);
+            var loginRepository = new FileLoginRepository(setting);
 
             switch (command)
             {
                 case "migrate":
-                    repo.Migrate().Wait();
+                    smokingRepository.Migrate().Wait();
                     break;
                 case "init":
-                    var initService = new InitSmokerService(repo);
+                    var initService = new InitSmokerService(smokingRepository);
                     var initCommand = new InitSmokerCommand
                     {
                         LimitPerDay = 20,
@@ -33,20 +41,19 @@ namespace Smoking.Console
                     initService.Execute(initCommand);
                     break;
                 case "info":
-                    var infoService = new InfoSmokerService(repo);
-                    var infoCommand = new InfoSmokerCommand
-                    {
-                        AggregateID = GetAggregateID(args),
-                    };
+                    var infoService = new InfoSmokerService(smokingRepository, loginRepository);
+                    var infoCommand = new InfoSmokerCommand { };
                     infoService.Execute(infoCommand).Wait();
                     break;
                 case "smoke":
-                    var smokeService = new SmokeService(repo);
-                    var smokeCommand = new SmokeCommand
-                    {
-                        AggregateID = GetAggregateID(args),
-                    };
+                    var smokeService = new SmokeService(smokingRepository, loginRepository);
+                    var smokeCommand = new SmokeCommand { };
                     smokeService.Execute(smokeCommand).Wait();
+                    break;
+                case "login":
+                    var loginService = new LoginService(loginRepository);
+                    var loginCommand = new LoginCommand { UserID = GetAggregateID(args) };
+                    loginService.Execute(loginCommand).Wait();
                     break;
             }
         }

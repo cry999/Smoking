@@ -7,21 +7,23 @@ namespace Smoking.Application
 {
     public class InfoSmokerCommand
     {
-        public string AggregateID { get; set; }
     }
 
     public class InfoSmokerService
     {
         private SmokerRepository repository;
 
-        public InfoSmokerService(SmokerRepository repository)
+        private LoginRepository loginRepository;
+
+        public InfoSmokerService(SmokerRepository repository, LoginRepository loginRepository)
         {
             this.repository = repository;
+            this.loginRepository = loginRepository;
         }
 
         public async Task Execute(InfoSmokerCommand command)
         {
-            var aggregateID = Guid.Parse(command.AggregateID);
+            var aggregateID = await this.loginRepository.GetLoggedinUser();
             var smoker = await this.repository.Get(aggregateID);
             Console.WriteLine($"aggregate id: {smoker.AggregateID}");
             Console.WriteLine($"=== stats ===");
